@@ -31,7 +31,11 @@ export default function Home() {
     <main className="p-10">
       <h1 className="text-4xl mb-4 font-bold">Firebase Cloud Messaging Demo</h1>
       my Token : <br />
-      <br /> {token} <br />
+      <pre>
+        {token && typeof token !== "string"
+          ? JSON.stringify(token, null, 2)
+          : token}
+      </pre>{" "}
       <br />
       {notificationPermissionStatus === "granted" ? (
         <p>Permission to receive notifications has been granted.</p>
