@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 import { Message } from "firebase-admin/messaging";
 import { NextRequest, NextResponse } from "next/server";
+import webpush from "web-push";
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
@@ -52,27 +53,81 @@ e89cDDtLDor992FLtFRzBBramPFXxIfYvFSYSftaSzamuqt4Gyr8Q+tqvzWNVF+/
   });
 }
 
+// ✅ Initialize Web Push (required for Apple/iOS Safari)
+if (
+  !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+  !process.env.VAPID_PRIVATE_KEY
+) {
+  console.warn("⚠️ VAPID keys missing! Web Push will fail on Safari.");
+} else {
+  webpush.setVapidDetails(
+    "mailto:admin@jaleecommerce.com",
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
+
+// ✅ Type guard
+function isPushSubscription(obj: any): obj is PushSubscription {
+  return (
+    obj && typeof obj.endpoint === "string" && typeof obj.keys === "object"
+  );
+}
+
+// ✅ Main handler
 export async function POST(request: NextRequest) {
   const { token, title, message, link } = await request.json();
 
-  const payload: Message = {
-    token,
-    notification: {
-      title: title,
-      body: message,
-    },
-    webpush: link && {
-      fcmOptions: {
-        link,
-      },
-    },
-  };
-
   try {
-    await admin.messaging().send(payload);
+    if (typeof token === "string" && token.trim() !== "") {
+      // Android/Desktop via FCM
+      await admin.messaging().send({
+        token,
+        notification: { title, body: message },
+        webpush: link && { fcmOptions: { link } },
+      });
+    } else if (isPushSubscription(token)) {
+      // iOS Safari (Web Push)
+      await webpush.sendNotification(
+        // @ts-ignore
+        token,
+        JSON.stringify({ title, body: message, data: { link } })
+      );
+    } else {
+      return NextResponse.json({
+        success: false,
+        message: "Invalid token/subscription.",
+      });
+    }
 
     return NextResponse.json({ success: true, message: "Notification sent!" });
   } catch (error) {
+    console.error("Notification send error:", error);
     return NextResponse.json({ success: false, error });
   }
 }
+
+// export async function POST(request: NextRequest) {
+//   const { token, sub, title, message, link } = await request.json();
+
+//   const payload: Message = {
+//     token,
+//     notification: {
+//       title: title,
+//       body: message,
+//     },
+//     webpush: link && {
+//       fcmOptions: {
+//         link,
+//       },
+//     },
+//   };
+
+//   try {
+//     await admin.messaging().send(payload);
+
+//     return NextResponse.json({ success: true, message: "Notification sent!" });
+//   } catch (error) {
+//     return NextResponse.json({ success: false, error });
+//   }
+// }
