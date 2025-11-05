@@ -17,3 +17,13 @@ self.addEventListener('notificationclick', function (event) {
   event.notification.close();
   event.waitUntil(clients.openWindow(event.notification.data || '/'));
 });
+
+// Listen for postMessage from page
+self.addEventListener("message", (event) => {
+  const { title, body } = event.data;
+
+  self.registration.showNotification(title, {
+    body,
+    icon: "/icon.png",
+  });
+});

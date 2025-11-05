@@ -1,9 +1,18 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function HomePage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // register the service worker on mount
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").then(() => {
+        console.log("✅ Service Worker registered");
+      });
+    }
+  }, []);
 
   const handleNotification = async () => {
     // Request permission for notifications
