@@ -1,6 +1,4 @@
-// pages/api/send-notification.js
 import webpush from "web-push";
-import { subscriptions } from "./subscribe";
 
 const PUBLIC = process.env.VAPID_PUBLIC_KEY;
 const PRIVATE = process.env.VAPID_PRIVATE_KEY;
