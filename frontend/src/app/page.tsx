@@ -1,71 +1,50 @@
 "use client";
-import { useState, useEffect } from "react";
 
-export default function HomePage() {
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+import { useState } from "react";
+import { sendTestNotification } from "../lib/engagespot";
+import { usePushSubscription } from "../hooks/usePush";
+import { Engagespot } from "@engagespot/react-component";
+import EngagespotBell from "@/components/EngagespotBell";
 
-  // register the service worker on mount
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").then(() => {
-        console.log("✅ Service Worker registered");
-      });
-    }
-  }, []);
+export default function Home() {
+  const [userId, setUserId] = useState<string>("jale.official.contact@gmail.com");
 
-  const handleNotification = async () => {
-    // Request permission for notifications
-    const permission = await Notification.requestPermission();
+  usePushSubscription();
 
-    if (permission !== "granted") {
-      alert("Notification permission denied!");
-      return;
-    }
-
-    // Show a test notification
-    new Notification("🎉 Subscription Successful!", {
-      body: "You’re now subscribed to our updates.",
-      icon: "/icon.png", // optional: add any image in /public folder
-    });
-  };
-
-  const handleSubscribe = async () => {
-    setLoading(true);
-    setMessage("");
-
+  const handleSend = async () => {
     try {
-      const res = await fetch("/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "test@example.com" }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setMessage(data.message);
-        handleNotification(); // trigger local notification
-      } else {
-        setMessage(data.error);
-      }
+      await sendTestNotification(userId);
+      alert("Sent test notification to: " + userId);
     } catch (err) {
-      setMessage("Network error");
-    } finally {
-      setLoading(false);
+      console.error(err);
+      alert("Failed to send test");
     }
   };
+
+  const apikey = process.env.NEXT_PUBLIC_ENGAGESPOT_API_KEY;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <button
-        onClick={handleSubscribe}
-        disabled={loading}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-      >
-        {loading ? "Subscribing..." : "Subscribe Test"}
+    <div style={{ padding: "2rem" }}>
+      <h1>Engagespot Push Test</h1>
+      <div>
+        <label>
+          User ID:&nbsp;
+          <input value={userId} onChange={(e) => setUserId(e.target.value)} />
+        </label>
+      </div>
+      <EngagespotBell />
+      <button onClick={handleSend} style={{ marginLeft: "1rem" }}>
+        Send Test Notification
       </button>
-
-      {message && <p className="mt-4">{message}</p>}
+      {apikey && (
+        <Engagespot
+          apiKey={apikey}
+          userId="jale.official.contact@gmail.com"
+          dataRegion="us" //eu or us
+          // userToken="Required if secure auth is enabled on your Engagespot app"
+        />
+      )}
+      ;
     </div>
   );
 }
