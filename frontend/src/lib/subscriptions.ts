@@ -5,6 +5,6 @@ export function storeSubscription(deviceId: string, subscription: object) {
   console.log("[v0] Stored subscription for device:", deviceId)
 }
 
-export function getStoredSubscriptions() {
-  return Array.from(subscriptions.values())
-}
+// export function getStoredSubscriptions() {
+//   return Array.from(subscriptions.values())
+// }

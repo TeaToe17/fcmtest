@@ -1,17 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { PushNotificationButton } from "@/components/push-notification-button";
-import { Engagespot } from "@engagespot/react-component";
 
-
+// Pick the named export
+const Engagespot = dynamic(
+  async () => {
+    const mod = await import("@engagespot/react-component");
+    return mod.Engagespot; // <-- pick named export
+  },
+  { ssr: false }
+);
 
 export default function Home() {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
-    // Check if the browser supports service workers and push notifications
     if ("serviceWorker" in navigator && "PushManager" in window) {
       setIsSupported(true);
       checkSubscriptionStatus();
@@ -35,19 +41,17 @@ export default function Home() {
       {isSupported ? (
         <div>
           <p>Status: {isSubscribed ? "Subscribed" : "Not subscribed"}</p>
-          {/* <PushNotificationButton onSubscriptionChange={checkSubscriptionStatus} /> */}
           <PushNotificationButton />
         </div>
       ) : (
         <p>Push notifications are not supported in this browser</p>
       )}
+
       <Engagespot
         apiKey={process.env.NEXT_PUBLIC_ENGAGESPOT_API_KEY!}
         userId="user123"
-        dataRegion="us" //eu or us
-        // userToken="Required if secure auth is enabled on your Engagespot app"
+        dataRegion="us"
       />
-      ;
     </div>
   );
 }
