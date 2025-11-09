@@ -1,57 +1,53 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import { PushNotificationButton } from "@/components/push-notification-button";
 
-// Pick the named export
-const Engagespot = dynamic(
-  async () => {
-    const mod = await import("@engagespot/react-component");
-    return mod.Engagespot; // <-- pick named export
-  },
-  { ssr: false }
-);
-
 export default function Home() {
-  const [isSupported, setIsSupported] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
-
-  useEffect(() => {
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      setIsSupported(true);
-      checkSubscriptionStatus();
-    }
-  }, []);
-
-  const checkSubscriptionStatus = async () => {
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-      setIsSubscribed(!!subscription);
-    } catch (error) {
-      console.error("Error checking subscription:", error);
-    }
-  };
-
   return (
-    <div>
-      <h1>Push Notifications</h1>
-      <p>Test Engagespot web push notifications on iOS and Android</p>
-      {isSupported ? (
-        <div>
-          <p>Status: {isSubscribed ? "Subscribed" : "Not subscribed"}</p>
-          <PushNotificationButton />
-        </div>
-      ) : (
-        <p>Push notifications are not supported in this browser</p>
-      )}
+    <main style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
+      <h1>PWA Push Notifications</h1>
+      <p>Test web push notifications with VAPID keys on iOS and Android PWAs</p>
 
-      <Engagespot
-        apiKey={process.env.NEXT_PUBLIC_ENGAGESPOT_API_KEY!}
-        userId="user123"
-        dataRegion="us"
-      />
-    </div>
+      <PushNotificationButton />
+
+      <div
+        style={{
+          marginTop: "2rem",
+          padding: "1rem",
+          backgroundColor: "#e8f4f8",
+        }}
+      >
+        <h2>Setup Instructions:</h2>
+        <ol>
+          <li>Generate VAPID keys: npx web-push generate-vapid-keys</li>
+          <li>
+            Add to .env.local:
+            <pre>{`NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_key
+VAPID_PRIVATE_KEY=your_key`}</pre>
+          </li>
+          <li>Install web-push: npm install web-push</li>
+          <li>Click "Enable Push Notifications"</li>
+          <li>Click "Send Test Notification" to test</li>
+          <li>iOS/iPadOS: Add site to Home Screen as PWA first, then test</li>
+        </ol>
+      </div>
+
+      <div
+        style={{
+          marginTop: "2rem",
+          padding: "1rem",
+          backgroundColor: "#f0e8f8",
+        }}
+      >
+        <h2>iOS PWA Push Notifications:</h2>
+        <ul>
+          <li>Works on iOS 16.4+ and iPadOS 16.4+</li>
+          <li>Must be installed as PWA (Add to Home Screen)</li>
+          <li>Uses Apple Push Notification service (APNs) transparently</li>
+          <li>Your custom VAPID keys work with native Web Push API</li>
+          <li>Payloads limited to ~4KB</li>
+        </ul>
+      </div>
+    </main>
   );
 }

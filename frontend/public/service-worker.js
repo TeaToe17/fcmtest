@@ -1,56 +1,52 @@
-// Service Worker for handling push notifications
-
-importScripts("https://cdn.engagespot.co/serviceWorkerv2.js")
-
+// Service Worker for handling push notifications on PWA
 self.addEventListener("install", (event) => {
-  console.log("[ServiceWorker] Installing...")
+  console.log("[SW] Installing service worker...")
   self.skipWaiting()
 })
 
 self.addEventListener("activate", (event) => {
-  console.log("[ServiceWorker] Activating...")
+  console.log("[SW] Activating service worker...")
   event.waitUntil(clients.claim())
 })
 
 self.addEventListener("push", (event) => {
-  console.log("[ServiceWorker] Push notification received:", event)
+  console.log("[SW] Push event received:", event)
 
-  let title = "Notification"
-  let options = {
-    body: "You have a new notification",
-    icon: "/icon.svg",
-    badge: "/icon.svg",
+  let data = {
+    title: "Notification",
+    body: "You have a new message",
+    icon: "/icon-light-32x32.png",
   }
 
   if (event.data) {
     try {
-      const data = event.data.json()
-      title = data.title || title
-      options = {
-        ...options,
-        body: data.message || data.body || options.body,
-      }
+      data = event.data.json()
     } catch (e) {
-      options.body = event.data.text()
+      data.body = event.data.text()
     }
   }
 
-  event.waitUntil(self.registration.showNotification(title, options))
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon || "/icon-light-32x32.png",
+      badge: "/icon-light-32x32.png",
+      tag: "notification",
+      requireInteraction: false,
+    }),
+  )
 })
 
 self.addEventListener("notificationclick", (event) => {
-  console.log("[ServiceWorker] Notification clicked:", event)
+  console.log("[SW] Notification clicked:", event)
   event.notification.close()
-
   event.waitUntil(
     clients.matchAll({ type: "window" }).then((clientList) => {
-      // Focus existing window if available
       for (const client of clientList) {
         if (client.url === "/" && "focus" in client) {
           return client.focus()
         }
       }
-      // Otherwise open new window
       if (clients.openWindow) {
         return clients.openWindow("/")
       }

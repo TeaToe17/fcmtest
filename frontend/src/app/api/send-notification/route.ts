@@ -1,40 +1,63 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || ""
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ""
+
+// This is the core server-side handler for push notifications
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await request.json()
+    const { subscription, title, body } = await request.json()
 
-    if (!userId) {
-      return NextResponse.json({ error: "userId required" }, { status: 400 })
+    if (!subscription || !subscription.endpoint) {
+      return NextResponse.json({ error: "Invalid subscription" }, { status: 400 })
     }
 
-    const apiKey = process.env.ENGAGESPOT_API_KEY
-    const apiSecret = process.env.ENGAGESPOT_API_SECRET
-
-    if (!apiKey || !apiSecret) {
-      return NextResponse.json({ error: "Missing Engagespot credentials" }, { status: 500 })
+    if (!VAPID_PRIVATE_KEY || !VAPID_PUBLIC_KEY) {
+      return NextResponse.json({ error: "VAPID keys not configured" }, { status: 500 })
     }
 
-    const response = await fetch("https://api.engagespot.co/v3/notifications", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-ENGAGESPOT-API-KEY": apiKey,
-        "X-ENGAGESPOT-API-SECRET": apiSecret,
-      },
-      body: JSON.stringify({
-        notification: {
-          title: "Test Notification",
-          message: "This is a test notification from your app",
+    const webpush = await import("web-push").catch(() => null)
+
+    if (!webpush) {
+      return NextResponse.json(
+        {
+          error: "web-push not installed. Run: npm install web-push",
+          message: "Notification received but not sent (web-push required)",
         },
-        recipients: [userId],
-      }),
+        { status: 202 },
+      )
+    }
+
+    webpush.default.setVapidDetails("mailto:admin@example.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+
+    const payload = JSON.stringify({
+      title: title || "New Notification",
+      body: body || "You have a new message",
+      icon: "/icon-light-32x32.png",
     })
 
-    const data = await response.json()
-    return NextResponse.json(data, { status: response.status })
+    await webpush.default.sendNotification(subscription, payload)
+
+    console.log("[API] Notification sent successfully")
+    return NextResponse.json({
+      success: true,
+      message: "Notification sent successfully",
+    })
   } catch (error) {
-    console.error("Error:", error)
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Failed to send notification"
+    console.error("[API] Send notification error:", errorMessage)
+
+    // If web-push isn't installed, provide helpful guidance
+    if (errorMessage.includes("Cannot find module")) {
+      return NextResponse.json(
+        {
+          error: "web-push package not found",
+          instruction: "Install with: npm install web-push",
+        },
+        { status: 501 },
+      )
+    }
+
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
